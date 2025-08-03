@@ -39,25 +39,28 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # --- UI ---
-st.markdown('<div class="title">🏋️ Julian's Workout Tracker</div>', unsafe_allow_html=True)
+st.markdown("<div class='title'>🏋️ Julian&#39;s Workout Tracker</div>", unsafe_allow_html=True)
 
 today = datetime.date.today()
 st.write(f"📅 **Date:** {today}")
 
 day = st.selectbox("🏷️ Select workout type", list(workout_plan.keys()))
-st.markdown(f'<div class="subtitle">Exercises for {day}</div>', unsafe_allow_html=True)
+st.markdown(f"<div class='subtitle'>Exercises for {day}</div>", unsafe_allow_html=True)
 
 for exercise in workout_plan[day]:
     st.markdown(f"#### {exercise}")
     prev = df[(df["Exercise"] == exercise) & (df["Day"] == day)].sort_values("Date", ascending=False).head(1)
     if not prev.empty:
-        st.markdown(f'<div class="last-session">Last: {prev["Weight"].values[0]} kg, {prev["Reps"].values[0]} reps × {prev["Sets"].values[0]} sets</div>', unsafe_allow_html=True)
+        st.markdown(
+            f"<div class='last-session'>Last: {prev['Weight'].values[0]} kg, {prev['Reps'].values[0]} reps × {prev['Sets'].values[0]} sets</div>",
+            unsafe_allow_html=True
+        )
     else:
-        st.markdown(f'<div class="last-session">No previous data</div>', unsafe_allow_html=True)
+        st.markdown("<div class='last-session'>No previous data</div>", unsafe_allow_html=True)
 
-    weight = st.number_input(f"Weight (kg)", min_value=0.0, step=0.5, key=exercise+"w")
-    reps = st.number_input(f"Reps", min_value=1, step=1, key=exercise+"r")
-    sets = st.number_input(f"Sets", min_value=1, step=1, key=exercise+"s")
+    weight = st.number_input("Weight (kg)", min_value=0.0, step=0.5, key=exercise+"w")
+    reps = st.number_input("Reps", min_value=1, step=1, key=exercise+"r")
+    sets = st.number_input("Sets", min_value=1, step=1, key=exercise+"s")
 
     if st.button(f"💾 Save {exercise}", key=exercise):
         new_entry = pd.DataFrame({
