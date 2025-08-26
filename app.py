@@ -5,9 +5,6 @@ from pathlib import Path
 
 st.set_page_config(page_title="FitApp • Workout Selector", page_icon="💪", layout="centered")
 
-# ---------------------------------
-# STORAGE
-# ---------------------------------
 LOG_PATH = Path("workout_logs.csv")
 COLUMNS = [
     "session_id","session_start","session_end","workout_name",
@@ -23,7 +20,6 @@ def load_logs():
             return pd.DataFrame(columns=COLUMNS)
     return pd.DataFrame(columns=COLUMNS)
 
-# basic epley 1RM
 def est_1rm(weight, reps):
     try:
         r = int(reps)
@@ -34,9 +30,6 @@ def est_1rm(weight, reps):
     except Exception:
         return None
 
-# ---------------------------------
-# DATA: Workouts & Rules (minimal)
-# ---------------------------------
 WORKOUTS = {
     "Upper A": [
         {"Exercise": "Bench Press (BB/DB)", "Range": "6–8"},
@@ -75,26 +68,34 @@ RULEBOOK_NOTE = (
     "Autopilot: compounds use double progression (6–8), bodyweight uses rep-goal, isolations add reps then weight, deload after 2–3 stalls."
 )
 
-# ---------------------------------
-# HISTORY & SUGGESTION HELPERS
-# ---------------------------------
-
 def last_load_for(exercise_name, logs):
     if logs.empty:
         return None
     df = logs[logs["exercise_name"] == exercise_name]
     if df.empty:
         return None
-    # choose last non-warmup set weight
     df = df[df["is_warmup"] == False]
     if df.empty:
         return None
     row = df.sort_values("session_end").tail(1).iloc[0]
     return float(row.get("weight_kg", 0)) or None
 
-# ---------------------------------
-# UI: Header & Selector
-# ---------------------------------
+def last_sets_count_for(exercise_name, logs, fallback=3):
+    """Return number of working sets from the most recent session for this exercise."""
+    if logs is None or logs.empty:
+        return fallback
+    df = logs[(logs["exercise_name"] == exercise_name) & (logs["is_warmup"] == False)].copy()
+    if df.empty:
+        return fallback
+    # Identify last completed session for this exercise
+    df = df.sort_values("session_end")
+    last_session_id = df["session_id"].iloc[-1]
+    n_sets = df[df["session_id"] == last_session_id]["set_idx"].nunique()
+    try:
+        return int(n_sets) if n_sets and n_sets > 0 else fallback
+    except Exception:
+        return fallback
+
 st.title("Workout Selector")
 st.caption("Pick your session and just enter reps. We’ll carry the weights.")
 
@@ -127,9 +128,6 @@ with st.expander("Warm-Up Blueprint (5–8 min)"):
 
 st.markdown("---")
 
-# ---------------------------------
-# MINIMAL LOGGER (Reps-only primary input)
-# ---------------------------------
 logs = load_logs()
 
 if picked:
@@ -140,54 +138,47 @@ if picked:
     st.subheader(f"{picked} – Quick Logger")
     st.caption(RULEBOOK_NOTE)
 
-    # Session id
     session_id = f"{datetime.now().strftime('%Y%m%d-%H%M')}-{picked.replace(' ', '')}" 
-
-    # build a reps-only logger: we prefill weights from last time and you mainly enter reps
     new_rows = []
 
     for ex in WORKOUTS[picked]:
         name = ex["Exercise"]
         with st.container():
             st.markdown(f"**{name}**  ")
-            # last weight suggestion
             last_w = last_load_for(name, logs)
             suggested_w = st.number_input(
                 f"Suggested weight (kg) — optional",
                 value=float(last_w) if last_w is not None else 0.0,
                 min_value=0.0, step=0.5, key=f"w_{name}"
             )
-            st.caption("Leave as-is; you only need to enter reps below. Adjust weight only if you want.")
+            st.caption("Weight carries over. You mainly enter reps.")
 
-            # choose number of sets first (defaults sensible by category)
-            default_sets = 4 if "Press" in name or "Deadlift" in name or "Squat" in name else 3
-            carried_sets = last_sets_count_for(name, logs, fallback=default_sets)
-            n_sets = st.number_input("Sets", min_value=1, max_value=8, value=carried_sets, step=1, key=f"sets_{name}")
+            df_ex = logs[logs["exercise_name"] == name]
+            if not df_ex.empty:
+                last_sess = df_ex.sort_values("session_end").tail(20)
+                last_sets = last_sess[last_sess["session_id"] == last_sess["session_id"].iloc[-1]]
+                prev_n_sets = last_sets["set_idx"].max()
+                prev_reps = last_sets["reps"].tolist()
+            else:
+                prev_n_sets, prev_reps = None, []
+
+            base_default = 4 if "Press" in name or "Deadlift" in name or "Squat" in name else 3
+            carried_sets = last_sets_count_for(name, logs, fallback=(prev_n_sets if prev_n_sets else base_default))
+            n_sets = st.number_input("Sets", min_value=1, max_value=8, value=int(carried_sets), step=1, key=f"sets_{name}")
 
             reps_inputs = []
             for s in range(1, int(n_sets)+1):
-                reps_key = f"reps_{name}_{s}"
-                reps = st.number_input(f"Reps – Set {s}", min_value=0, max_value=50, value=0, step=1, key=reps_key)
+                default_rep = prev_reps[s-1] if s-1 < len(prev_reps) else 0
+                reps = st.number_input(f"Reps – Set {s}", min_value=0, max_value=50, value=default_rep, step=1, key=f"reps_{name}_{s}")
                 reps_inputs.append(reps)
 
-            # One-tap copy: duplicate the last non-zero set's reps into the next empty set
-            def _copy_last_into_next_empty(prefix_name):
-                last_val = None
-                next_empty_idx = None
+            if st.button("Copy Last Set", key=f"copy_{name}") and reps_inputs:
+                last_val = reps_inputs[-1]
                 for s in range(1, int(n_sets)+1):
-                    val = st.session_state.get(f"reps_{prefix_name}_{s}", 0)
-                    if val and val > 0:
-                        last_val = val
-                    if (next_empty_idx is None) and (not val or val == 0):
-                        next_empty_idx = s
-                if last_val is not None and next_empty_idx is not None:
-                    st.session_state[f"reps_{prefix_name}_{next_empty_idx}"] = int(last_val)
-                    st.toast(f"Copied {last_val} reps to Set {next_empty_idx}")
+                    key = f"reps_{name}_{s}"
+                    st.session_state[key] = last_val
+                st.toast(f"Copied {last_val} reps to all sets for {name}")
 
-            if st.button("Copy last set → next empty", key=f"copybtn_{name}"):
-                _copy_last_into_next_empty(name)
-
-            # create rows (warmups excluded from this minimal logger)
             for idx, reps in enumerate(reps_inputs, start=1):
                 if reps > 0:
                     vol = (suggested_w) * reps if suggested_w else 0
@@ -212,7 +203,6 @@ if picked:
     st.markdown("---")
     save = st.button("✅ Finish Session & Save", use_container_width=True)
     if save:
-        # finalize session end, append to CSV
         end_ts = datetime.now().isoformat(timespec="seconds")
         if new_rows:
             for r in new_rows:
@@ -227,7 +217,6 @@ if picked:
             else:
                 df_out = df_new
             df_out.to_csv(LOG_PATH, index=False)
-            # Simple session summary
             st.success(f"Saved {len(df_new)} sets to {LOG_PATH.name}.")
             by_ex = (df_new.groupby("exercise_name")
                             .agg(sets=("set_idx","count"),
@@ -241,10 +230,8 @@ if picked:
             st.warning("No reps entered — nothing saved.")
         st.session_state.session_start = None
 
-    # Reset/clear controls
     clr1, clr2 = st.columns(2)
     if clr1.button("🧹 Reset Current Inputs", use_container_width=True):
-        # Clear reps widgets for this picked workout
         for ex in WORKOUTS[picked]:
             name = ex["Exercise"]
             default_sets = 4 if "Press" in name or "Deadlift" in name or "Squat" in name else 3
@@ -257,7 +244,6 @@ if picked:
         st.session_state.session_start = None
         st.experimental_rerun()
 
-    # History preview for context
     with st.expander("Recent History (this workout)"):
         hist = logs[logs["workout_name"] == picked].sort_values("session_end").tail(50)
         if hist.empty:
@@ -265,83 +251,8 @@ if picked:
         else:
             st.dataframe(hist[["session_end","exercise_name","set_idx","weight_kg","reps","volume_kg"]], hide_index=True, use_container_width=True)
 
-# ---------------------------------
-# PROGRESS GRAPHS (Beta)
-# ---------------------------------
-with st.expander("📈 Progress (Beta)", expanded=False):
-    if LOG_PATH.exists():
-        logs = load_logs()
-        # exclude warmups
-        data = logs.copy()
-        if not data.empty:
-            data["session_end"] = pd.to_datetime(data["session_end"], errors="coerce")
-            data = data[data["is_warmup"] == False]
-            data = data.dropna(subset=["session_end"])  # only finalized sets
-
-            # exercise picker
-            exercises = sorted(data["exercise_name"].dropna().unique().tolist())
-            if exercises:
-                ex_pick = st.selectbox("Exercise", exercises, index=0)
-                metric = st.selectbox("Metric", ["Top Set Weight (kg)", "Estimated 1RM", "Total Volume (kg) per Session", "Total Reps per Session"], index=0)
-
-                # aggregate by session for chosen exercise
-                d_ex = data[data["exercise_name"] == ex_pick]
-                by_sess = (d_ex.groupby(["session_id", "session_end"]) 
-                                .agg(top_weight=("weight_kg", "max"),
-                                     est1rm=("est_1rm", "max"),
-                                     total_volume=("volume_kg", "sum"),
-                                     total_reps=("reps", "sum"))
-                                .reset_index()
-                                .sort_values("session_end"))
-                if not by_sess.empty:
-                    if metric.startswith("Top Set"):
-                        y = by_sess[["session_end", "top_weight"]].set_index("session_end")
-                        st.line_chart(y)
-                        st.caption("Shows heaviest working set each session.")
-                    elif metric.startswith("Estimated 1RM"):
-                        y = by_sess[["session_end", "est1rm"]].set_index("session_end")
-                        st.line_chart(y)
-                        st.caption("Epley estimate from your best set per session.")
-                    elif metric.startswith("Total Volume"):
-                        y = by_sess[["session_end", "total_volume"]].set_index("session_end")
-                        st.line_chart(y)
-                        st.caption("Sum of (weight × reps) across sets per session.")
-                    else:
-                        y = by_sess[["session_end", "total_reps"]].set_index("session_end")
-                        st.line_chart(y)
-                        st.caption("Total reps logged for this exercise per session.")
-
-                    # quick PR badges
-                    c1, c2, c3, c4 = st.columns(4)
-                    with c1:
-                        st.metric("Top Set (kg)", value=(by_sess["top_weight"].max() if not by_sess["top_weight"].isna().all() else 0))
-                    with c2:
-                        st.metric("Best est 1RM", value=(by_sess["est1rm"].max() if not by_sess["est1rm"].isna().all() else 0))
-                    with c3:
-                        st.metric("Best Volume (kg)", value=int(by_sess["total_volume"].max() if not by_sess["total_volume"].isna().all() else 0))
-                    with c4:
-                        st.metric("Best Total Reps", value=int(by_sess["total_reps"].max() if not by_sess["total_reps"].isna().all() else 0))
-
-            st.markdown("---")
-            # Weekly training frequency (all workouts)
-            wk = (logs.dropna(subset=["session_end"]).copy())
-            wk["session_end"] = pd.to_datetime(wk["session_end"], errors="coerce")
-            wk = wk.dropna(subset=["session_end"]) 
-            wk = wk.groupby(["session_id", "session_end"]).size().reset_index(name="sets")
-            if not wk.empty:
-                wk["week"] = wk["session_end"].dt.to_period("W").dt.start_time
-                freq = wk.groupby("week").agg(sessions=("session_id", "nunique")).reset_index().set_index("week").sort_index()
-                st.subheader("Weekly Sessions")
-                st.line_chart(freq)
-                st.caption("How many training sessions you completed each week.")
-        else:
-            st.info("No data yet. Log a session to unlock progress graphs.")
-    else:
-        st.info("No logs found yet. After saving your first workout, graphs will appear here.")
-
-# Footer
 st.markdown("""
 <div style='text-align:center; opacity:0.6; font-size:0.9em;'>
-  Minimal logging + Progress (Beta). Build history first; insights compound over time.
+  Minimal logging: reps + sets. We carry weights and history.
 </div>
 """, unsafe_allow_html=True)
