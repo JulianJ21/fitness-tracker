@@ -104,18 +104,21 @@ if "weights" not in st.session_state:
 st.markdown(
     """
     <style>
-    .header-row {display:flex; gap:8px; align-items:center; justify-content:space-between;}
-    .hdr-left {display:flex; gap:10px; align-items:baseline;}
-    .hdr-title {font-weight:600;}
-    .hdr-meta {opacity:0.75; font-size:0.9em;}
-    .hdr-actions {display:flex; gap:6px;}
-    .tiny-btn button {padding:2px 6px; font-size:0.85em;}
-    .sticky-save {position:fixed; bottom:20px; right:20px; z-index:9999;}
+      .header-row {display:flex; gap:8px; align-items:center; justify-content:space-between;}
+      .hdr-left {display:flex; gap:10px; align-items:baseline;}
+      .hdr-title {font-weight:600;}
+      .hdr-meta {opacity:0.75; font-size:0.9em;}
+      .tiny-btn button {padding:2px 6px; font-size:0.85em;}
+      .footer-bar {position:fixed; left:0; right:0; bottom:0; padding:10px 16px; backdrop-filter: blur(8px); background: rgba(255,255,255,0.75); border-top:1px solid rgba(0,0,0,0.08); z-index:9999;}
+      .footer-inner {display:flex; gap:10px; align-items:center; justify-content:space-between; max-width: 900px; margin: 0 auto;}
+      .footer-title {font-weight:600; opacity:0.8}
+      .pill {display:inline-block; padding:2px 8px; border-radius:999px; background:rgba(0,0,0,0.06); font-size:12px; margin-left:6px}
+      .info-chip {display:inline-block; padding:2px 6px; border-radius:8px; background:rgba(0,0,0,0.05); font-size:12px; margin-left:6px}
+      .card {padding:8px 6px; border-radius:12px; border:1px solid rgba(0,0,0,0.08); margin-bottom:8px}
     </style>
     """,
     unsafe_allow_html=True,
 )
-
 # ------------------ UI: HEADER ------------------
 st.title("Compact Workout Logger")
 st.caption("Minimal scrolling • Dynamic rows • Accordion cards • Sticky Save")
@@ -131,13 +134,7 @@ if cols[2].button("Upper B", use_container_width=True):
 picked = st.session_state.picked
 logs = load_logs()
 
-# Sidebar: always-visible finish/save
-st.sidebar.header("Session")
-st.sidebar.write("Finish anytime from here.")
-sidebar_save = st.sidebar.button("✅ Finish & Save")
-st.sidebar.markdown("---")
-st.sidebar.button("🔄 New Session", on_click=lambda: st.session_state.update({"session_start": None, "sets_entered": {}, "weights": {}}))
-
+# Remove sidebar save; we'll add a sticky footer bar instead
 if picked:
     if not st.session_state.session_start:
         st.session_state.session_start = datetime.now().isoformat(timespec="seconds")
