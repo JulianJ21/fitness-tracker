@@ -58,7 +58,7 @@ def last_summary(logs, ex_name):
     return {"weight": weight, "reps": reps, "n_sets": len(reps)}
 
 WORKOUTS = {
-    "Upper A": [
+    "Upper (Strength)": [
         {"Exercise": "Bench Press (BB/DB)", "Range": "6–8", "Info": "Main chest press. Double progression."},
         {"Exercise": "Pull-Ups (neutral/wide)", "Range": "6–8 (or rep-goal)", "Info": "Back/biceps. Add load post-goal."},
         {"Exercise": "Overhead Press (DB/bands)", "Range": "6–8", "Info": "Delts/triceps. Strict form."},
@@ -67,14 +67,7 @@ WORKOUTS = {
         {"Exercise": "EZ Bar Curl", "Range": "10–12", "Info": "Biceps isolation. Squeeze top."},
         {"Exercise": "Lateral Raise", "Range": "15–20", "Info": "Delts. Light, clean reps."},
     ],
-    "Lower": [
-        {"Exercise": "Bulgarian Split Squat / Reverse Lunge", "Range": "6–8/leg", "Info": "Quads/glutes. Balance + control."},
-        {"Exercise": "Romanian Deadlift", "Range": "~8", "Info": "Hamstrings/glutes. Hinge tight."},
-        {"Exercise": "Step-Ups or Hip Thrusts", "Range": "10–12", "Info": "Glute focus. Full lockout."},
-        {"Exercise": "Calf Raise (BW + DB)", "Range": "12–15", "Info": "Pause at stretch."},
-        {"Exercise": "Core: Plank / Hollow / Side Plank", "Range": "circuit", "Info": "Brace + breathe."},
-    ],
-    "Upper B": [
+    "Upper (Volume)": [
         {"Exercise": "Incline DB Press", "Range": "8–10", "Info": "Upper chest. Controlled tempo."},
         {"Exercise": "Chin-Ups", "Range": "AMRAP/rep-goal", "Info": "Lats/biceps. Add load post-goal."},
         {"Exercise": "Arnold Press / DB OHP", "Range": "10–12", "Info": "Delts focus. Smooth rotation."},
@@ -82,6 +75,13 @@ WORKOUTS = {
         {"Exercise": "Incline DB Curl or Hammer Curl", "Range": "12–15", "Info": "No swinging."},
         {"Exercise": "Upright Row (EZ/Bands)", "Range": "10–12", "Info": "To mid-chest only."},
         {"Exercise": "Lateral Raise (variation/giant set)", "Range": "15–20", "Info": "Pump work, clean form."},
+    ],
+    "Lower": [
+        {"Exercise": "Bulgarian Split Squat / Reverse Lunge", "Range": "6–8/leg", "Info": "Quads/glutes. Balance + control."},
+        {"Exercise": "Romanian Deadlift", "Range": "~8", "Info": "Hamstrings/glutes. Hinge tight."},
+        {"Exercise": "Step-Ups or Hip Thrusts", "Range": "10–12", "Info": "Glute focus. Full lockout."},
+        {"Exercise": "Calf Raise (BW + DB)", "Range": "12–15", "Info": "Pause at stretch."},
+        {"Exercise": "Core: Plank / Hollow / Side Plank", "Range": "circuit", "Info": "Brace + breathe."},
     ],
 }
 
@@ -120,12 +120,12 @@ st.title("Compact Workout Logger")
 st.caption("Minimal scrolling • Accordion cards • Sticky Save")
 
 cols = st.columns(3)
-if cols[0].button("Upper A", use_container_width=True):
-    st.session_state.picked = "Upper A"
-if cols[1].button("Lower", use_container_width=True):
+if cols[0].button("Upper (Strength)", use_container_width=True):
+    st.session_state.picked = "Upper (Strength)"
+if cols[1].button("Upper (Volume)", use_container_width=True):
+    st.session_state.picked = "Upper (Volume)"
+if cols[2].button("Lower", use_container_width=True):
     st.session_state.picked = "Lower"
-if cols[2].button("Upper B", use_container_width=True):
-    st.session_state.picked = "Upper B"
 
 picked = st.session_state.picked
 logs = load_logs()
@@ -251,4 +251,4 @@ if picked:
         else:
             st.warning("No reps entered — nothing saved.")
 else:
-    st.info("Pick a workout to start: Upper A • Lower • Upper B")
+    st.info("Pick a workout to start: Upper (Strength) • Upper (Volume) • Lower")
