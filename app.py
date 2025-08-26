@@ -143,7 +143,7 @@ if picked:
     # Session id
     session_id = f"{datetime.now().strftime('%Y%m%d-%H%M')}-{picked.replace(' ', '')}" 
 
-    # build a reps-only logger: we prefill weights from last time and hide them unless expanded
+    # build a reps-only logger: we prefill weights from last time and you mainly enter reps
     new_rows = []
 
     for ex in WORKOUTS[picked]:
@@ -161,12 +161,31 @@ if picked:
 
             # choose number of sets first (defaults sensible by category)
             default_sets = 4 if "Press" in name or "Deadlift" in name or "Squat" in name else 3
-            n_sets = st.number_input("Sets", min_value=1, max_value=8, value=default_sets, step=1, key=f"sets_{name}")
+            carried_sets = last_sets_count_for(name, logs, fallback=default_sets)
+            n_sets = st.number_input("Sets", min_value=1, max_value=8, value=carried_sets, step=1, key=f"sets_{name}")
 
             reps_inputs = []
             for s in range(1, int(n_sets)+1):
-                reps = st.number_input(f"Reps – Set {s}", min_value=0, max_value=50, value=0, step=1, key=f"reps_{name}_{s}")
+                reps_key = f"reps_{name}_{s}"
+                reps = st.number_input(f"Reps – Set {s}", min_value=0, max_value=50, value=0, step=1, key=reps_key)
                 reps_inputs.append(reps)
+
+            # One-tap copy: duplicate the last non-zero set's reps into the next empty set
+            def _copy_last_into_next_empty(prefix_name):
+                last_val = None
+                next_empty_idx = None
+                for s in range(1, int(n_sets)+1):
+                    val = st.session_state.get(f"reps_{prefix_name}_{s}", 0)
+                    if val and val > 0:
+                        last_val = val
+                    if (next_empty_idx is None) and (not val or val == 0):
+                        next_empty_idx = s
+                if last_val is not None and next_empty_idx is not None:
+                    st.session_state[f"reps_{prefix_name}_{next_empty_idx}"] = int(last_val)
+                    st.toast(f"Copied {last_val} reps to Set {next_empty_idx}")
+
+            if st.button("Copy last set → next empty", key=f"copybtn_{name}"):
+                _copy_last_into_next_empty(name)
 
             # create rows (warmups excluded from this minimal logger)
             for idx, reps in enumerate(reps_inputs, start=1):
@@ -208,10 +227,35 @@ if picked:
             else:
                 df_out = df_new
             df_out.to_csv(LOG_PATH, index=False)
+            # Simple session summary
             st.success(f"Saved {len(df_new)} sets to {LOG_PATH.name}.")
+            by_ex = (df_new.groupby("exercise_name")
+                            .agg(sets=("set_idx","count"),
+                                 top_weight=("weight_kg","max"),
+                                 total_reps=("reps","sum"),
+                                 volume=("volume_kg","sum"))
+                            .reset_index())
+            st.markdown("#### Session Summary")
+            st.dataframe(by_ex, hide_index=True, use_container_width=True)
         else:
             st.warning("No reps entered — nothing saved.")
         st.session_state.session_start = None
+
+    # Reset/clear controls
+    clr1, clr2 = st.columns(2)
+    if clr1.button("🧹 Reset Current Inputs", use_container_width=True):
+        # Clear reps widgets for this picked workout
+        for ex in WORKOUTS[picked]:
+            name = ex["Exercise"]
+            default_sets = 4 if "Press" in name or "Deadlift" in name or "Squat" in name else 3
+            for s in range(1, int(default_sets)+1):
+                key = f"reps_{name}_{s}"
+                if key in st.session_state:
+                    st.session_state[key] = 0
+        st.toast("Inputs reset.")
+    if clr2.button("🔄 Start New Session", use_container_width=True):
+        st.session_state.session_start = None
+        st.experimental_rerun()
 
     # History preview for context
     with st.expander("Recent History (this workout)"):
