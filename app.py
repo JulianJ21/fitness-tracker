@@ -1,76 +1,124 @@
-
 import streamlit as st
-import pandas as pd
-import datetime
-import os
+from datetime import datetime
 
-# --- Workout Plan with new labels ---
-workout_plan = {
-    "Strength (Mon)": [
-        "Split Squat", "Bench Press", "Pull-Ups", "Close-Grip Push-Up", "EZ Curl", "Lateral Raise"
+st.set_page_config(page_title="FitApp • Workout Selector", page_icon="💪", layout="centered")
+
+# ---------------------------
+# DATA: Workouts & Blueprints
+# ---------------------------
+WORKOUTS = {
+    "Upper A": [
+        {"Exercise": "Bench Press (BB/DB)", "Sets": 4, "Reps": "6–8", "Notes": "Double progression"},
+        {"Exercise": "Pull-Ups (neutral/wide)", "Sets": 4, "Reps": "6–8", "Notes": "Rep goal if BW"},
+        {"Exercise": "Overhead Press (DB/bands)", "Sets": 3, "Reps": "6–8", "Notes": "Keep reps crisp"},
+        {"Exercise": "Row (BB or 1-Arm DB)", "Sets": 3, "Reps": "~8", "Notes": "Full range"},
+        {"Exercise": "Dips (weighted if able)", "Sets": 3, "Reps": "8–10", "Notes": "Controlled depth"},
+        {"Exercise": "EZ Bar Curl", "Sets": 3, "Reps": "10–12", "Notes": "Squeeze top"},
+        {"Exercise": "Lateral Raise", "Sets": 3, "Reps": "15–20", "Notes": "Light, clean form"},
     ],
-    "Volume (Wed)": [
-        "RDL", "Incline DB Press", "1-Arm Row", "Skullcrusher", "Incline Curl", "Lateral Raise"
+    "Lower": [
+        {"Exercise": "Bulgarian Split Squat / Reverse Lunge", "Sets": 4, "Reps": "6–8/leg", "Notes": "Stay balanced"},
+        {"Exercise": "Romanian Deadlift", "Sets": 4, "Reps": "~8", "Notes": "Hinge, lats tight"},
+        {"Exercise": "Step-Ups or Hip Thrusts", "Sets": 3, "Reps": "10–12", "Notes": "Glutes focus"},
+        {"Exercise": "Calf Raise (BW + DB)", "Sets": 4, "Reps": "12–15", "Notes": "Pause at stretch"},
+        {"Exercise": "Core: Plank / Hollow / Side Plank", "Sets": 3, "Reps": "circuit", "Notes": "Solid bracing"},
     ],
-    "Athleticism (Sat)": [
-        "Reverse Lunge", "Step-Up", "Chin-Ups", "Dips", "Shrugs / Carries", "Plank / Hollow Hold", "Lateral Raise"
-    ]
+    "Upper B": [
+        {"Exercise": "Incline DB Press", "Sets": 3, "Reps": "8–10", "Notes": "Controlled tempo"},
+        {"Exercise": "Chin-Ups", "Sets": 3, "Reps": "AMRAP", "Notes": "Rep goal if BW"},
+        {"Exercise": "Arnold Press / DB OHP", "Sets": 3, "Reps": "10–12", "Notes": "Shoulder focus"},
+        {"Exercise": "Skullcrusher (EZ Bar)", "Sets": 3, "Reps": "12–15", "Notes": "Elbows steady"},
+        {"Exercise": "Incline DB Curl or Hammer Curl", "Sets": 3, "Reps": "12–15", "Notes": "No swinging"},
+        {"Exercise": "Upright Row (EZ/Bands)", "Sets": 3, "Reps": "10–12", "Notes": "To mid-chest"},
+        {"Exercise": "Lateral Raise (variation/giant set)", "Sets": 4, "Reps": "15–20", "Notes": "Pump work"},
+    ],
 }
 
-# Load or create progress file
-progress_file = "progress.csv"
-if os.path.exists(progress_file):
-    df = pd.read_csv(progress_file)
+WARMUP_BLUEPRINT = [
+    "2–3 min light cardio (bike/jacks/shadowbox) to raise temp.",
+    "Dynamic prep (8–12 reps each): arm circles, band pull-aparts, hip-hinge swings, short 'world’s greatest' stretch, scap pull-ups/push-ups.",
+    "Specific ramp-up: 2–3 lighter sets of FIRST lift (≈40–60–80% of working load).",
+]
+
+PROGRESSION_RULES = [
+    "Compounds (6–8 reps): Double progression — when you hit the top end across sets, add a small weight next time.",
+    "Bodyweight (pull-ups/dips): Rep goal system — when total target is hit across sets, add weight.",
+    "Isolation (10–15, laterals 15–20): Add reps week to week; when you reach the top end cleanly, bump weight and reset reps.",
+    "Deload: If no progress for 2–3 sessions on a lift, drop 10–15% and rebuild.",
+]
+
+# ---------------------------
+# UI: Header & Selector
+# ---------------------------
+st.title("Workout Selector")
+st.caption("Pick your session for today. No calendar, no guilt — just train.")
+
+if "last_workout" not in st.session_state:
+    st.session_state.last_workout = None
+
+# Suggest next in rotation (soft suggestion)
+rotation = ["Upper A", "Lower", "Upper B"]
+if st.session_state.last_workout in rotation:
+    idx = (rotation.index(st.session_state.last_workout) + 1) % len(rotation)
+    suggested = rotation[idx]
 else:
-    df = pd.DataFrame(columns=["Date", "Day", "Exercise", "Weight", "Reps", "Sets"])
+    suggested = rotation[0]
 
-# --- Page config ---
-st.set_page_config(page_title="Julian's Workout Tracker", layout="centered")
+with st.container():
+    st.markdown("### Select a workout")
+    c1, c2, c3 = st.columns(3)
+    picked = None
+    with c1:
+        if st.button("Upper A", use_container_width=True):
+            picked = "Upper A"
+    with c2:
+        if st.button("Lower", use_container_width=True):
+            picked = "Lower"
+    with c3:
+        if st.button("Upper B", use_container_width=True):
+            picked = "Upper B"
 
-# --- Style ---
+    st.markdown(f"<div style='text-align:center;opacity:0.8'>Suggested next: <b>{suggested}</b> (you can override)</div>", unsafe_allow_html=True)
+
+# Warm-Up blueprint as reusable panel
+with st.expander("Warm-Up Blueprint (5–8 min)", expanded=False):
+    for step in WARMUP_BLUEPRINT:
+        st.markdown(f"- {step}")
+    st.info("Keep it lowkey: smooth reps, no fatigue before the main work.")
+
+# Progression rules panel
+with st.expander("Progression Rulebook", expanded=False):
+    for rule in PROGRESSION_RULES:
+        st.markdown(f"- {rule}")
+
+# Render picked workout
+if picked:
+    st.session_state.last_workout = picked
+    st.divider()
+    st.subheader(f"{picked} – Session Plan")
+    st.caption("Focus on quality reps. Log sets/reps/weights as you go (tracking comes next phase).")
+
+    # Simple table
+    import pandas as pd
+    df = pd.DataFrame(WORKOUTS[picked])
+    st.dataframe(df, hide_index=True, use_container_width=True)
+
+    with st.container():
+        st.markdown("#### Notes")
+        if picked == "Upper A":
+            st.markdown("- Heavy compounds first. Finish with arms/shoulders.")
+        elif picked == "Lower":
+            st.markdown("- Posterior-chain + unilateral focus. Manage soreness for BJJ.")
+        elif picked == "Upper B":
+            st.markdown("- Shoulder & arm volume emphasis. Chase the pump, not slop.")
+
+    # Placeholder controls for future logging
+    st.divider()
+    st.caption("Coming soon: in-session logger, auto-progression suggestions, and export to CSV/SQLite.")
+
+# Footer
 st.markdown("""
-    <style>
-        .title { font-size: 2.2em; font-weight: bold; text-align: center; margin-bottom: 0.5em; }
-        .subtitle { font-size: 1.4em; font-weight: 600; margin-top: 1.5em; color: #333; }
-        .last-session { color: #888; font-size: 0.9em; }
-        .stButton>button { width: 100%; margin-top: 0.3em; background-color: #4CAF50; color: white; border-radius: 8px; }
-        .stNumberInput input { border-radius: 5px; }
-    </style>
+<div style='text-align:center; opacity:0.6; font-size:0.9em;'>
+  FitApp MVP • Build strength with simple rules and consistent execution.
+</div>
 """, unsafe_allow_html=True)
-
-# --- UI ---
-st.markdown("<div class='title'>🏋️ Julian&#39;s Workout Tracker</div>", unsafe_allow_html=True)
-
-today = datetime.date.today()
-st.write(f"📅 **Date:** {today}")
-
-day = st.selectbox("🏷️ Select workout type", list(workout_plan.keys()))
-st.markdown(f"<div class='subtitle'>Exercises for {day}</div>", unsafe_allow_html=True)
-
-for exercise in workout_plan[day]:
-    st.markdown(f"#### {exercise}")
-    prev = df[(df["Exercise"] == exercise) & (df["Day"] == day)].sort_values("Date", ascending=False).head(1)
-    if not prev.empty:
-        st.markdown(
-            f"<div class='last-session'>Last: {prev['Weight'].values[0]} kg, {prev['Reps'].values[0]} reps × {prev['Sets'].values[0]} sets</div>",
-            unsafe_allow_html=True
-        )
-    else:
-        st.markdown("<div class='last-session'>No previous data</div>", unsafe_allow_html=True)
-
-    weight = st.number_input("Weight (kg)", min_value=0.0, step=0.5, key=exercise+"w")
-    reps = st.number_input("Reps", min_value=1, step=1, key=exercise+"r")
-    sets = st.number_input("Sets", min_value=1, step=1, key=exercise+"s")
-
-    if st.button(f"💾 Save {exercise}", key=exercise):
-        new_entry = pd.DataFrame({
-            "Date": [str(today)],
-            "Day": [day],
-            "Exercise": [exercise],
-            "Weight": [weight],
-            "Reps": [reps],
-            "Sets": [sets]
-        })
-        df = pd.concat([df, new_entry], ignore_index=True)
-        df.to_csv(progress_file, index=False)
-        st.success(f"Saved: {exercise}")
