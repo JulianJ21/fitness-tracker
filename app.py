@@ -61,7 +61,7 @@ def last_summary(logs, ex_name):
 WORKOUTS = {
     "Upper (Strength)": [
         {"Exercise": "DB Bench Press", "Range": "6–8", "Info": "Main chest press. Double progression."},
-        {"Exercise": "Wide Grip Pull-Ups", "Range": "6–8 (or rep-goal)", "Info": "Back/biceps. Add load post-goal."},
+        {"Exercise": "Wide Grip Pull-Ups", "Range": "6–8 (or rep-goal)", "Info": "Lats/biceps. Add load post-goal."},
         {"Exercise": "DB Overhead Press", "Range": "6–8", "Info": "Delts/triceps. Strict form."},
         {"Exercise": "Barbell Row", "Range": "~8", "Info": "Back thickness. Full range."},
         {"Exercise": "Weighted Dips", "Range": "8–10", "Info": "Chest/triceps. Shoulder-friendly depth."},
@@ -70,7 +70,7 @@ WORKOUTS = {
     ],
     "Upper (Volume)": [
         {"Exercise": "Incline DB Press", "Range": "8–10", "Info": "Upper chest. Controlled tempo."},
-        {"Exercise": "Neutral Grip Pull-ups", "Range": "AMRAP/rep-goal", "Info": "Lats/biceps. Add load post-goal."},
+        {"Exercise": "Neutral Grip Pull-ups", "Range": "AMRAP/rep-goal", "Info": "Back/biceps. Add load post-goal."},
         {"Exercise": "Arnold Press", "Range": "10–12", "Info": "Delts focus. Smooth rotation."},
         {"Exercise": "Skullcrusher", "Range": "12–15", "Info": "Elbows steady."},
         {"Exercise": "Hammer Curls", "Range": "12–15", "Info": "No swinging."},
