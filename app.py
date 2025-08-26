@@ -60,29 +60,29 @@ def last_summary(logs, ex_name):
 # ------------------ WORKOUTS ------------------
 WORKOUTS = {
     "Upper (Strength)": [
-        {"Exercise": "Bench Press (BB/DB)", "Range": "6–8", "Info": "Main chest press. Double progression."},
-        {"Exercise": "Pull-Ups (neutral/wide)", "Range": "6–8 (or rep-goal)", "Info": "Back/biceps. Add load post-goal."},
-        {"Exercise": "Overhead Press (DB/bands)", "Range": "6–8", "Info": "Delts/triceps. Strict form."},
-        {"Exercise": "Row (BB or 1-Arm DB)", "Range": "~8", "Info": "Back thickness. Full range."},
-        {"Exercise": "Dips (weighted if able)", "Range": "8–10", "Info": "Chest/triceps. Shoulder-friendly depth."},
+        {"Exercise": "DB Bench Press", "Range": "6–8", "Info": "Main chest press. Double progression."},
+        {"Exercise": "Wide Grip Pull-Ups", "Range": "6–8 (or rep-goal)", "Info": "Back/biceps. Add load post-goal."},
+        {"Exercise": "DB Overhead Press", "Range": "6–8", "Info": "Delts/triceps. Strict form."},
+        {"Exercise": "Barbell Row", "Range": "~8", "Info": "Back thickness. Full range."},
+        {"Exercise": "Weighted Dips", "Range": "8–10", "Info": "Chest/triceps. Shoulder-friendly depth."},
         {"Exercise": "EZ Bar Curl", "Range": "10–12", "Info": "Biceps isolation. Squeeze top."},
         {"Exercise": "Lateral Raise", "Range": "15–20", "Info": "Delts. Light, clean reps."},
     ],
     "Upper (Volume)": [
         {"Exercise": "Incline DB Press", "Range": "8–10", "Info": "Upper chest. Controlled tempo."},
-        {"Exercise": "Chin-Ups", "Range": "AMRAP/rep-goal", "Info": "Lats/biceps. Add load post-goal."},
-        {"Exercise": "Arnold Press / DB OHP", "Range": "10–12", "Info": "Delts focus. Smooth rotation."},
-        {"Exercise": "Skullcrusher (EZ Bar)", "Range": "12–15", "Info": "Elbows steady."},
-        {"Exercise": "Incline DB Curl or Hammer Curl", "Range": "12–15", "Info": "No swinging."},
-        {"Exercise": "Upright Row (EZ/Bands)", "Range": "10–12", "Info": "To mid-chest only."},
-        {"Exercise": "Lateral Raise (variation/giant set)", "Range": "15–20", "Info": "Pump work, clean form."},
+        {"Exercise": "Neutral Grip Pull-ups", "Range": "AMRAP/rep-goal", "Info": "Lats/biceps. Add load post-goal."},
+        {"Exercise": "Arnold Press", "Range": "10–12", "Info": "Delts focus. Smooth rotation."},
+        {"Exercise": "Skullcrusher", "Range": "12–15", "Info": "Elbows steady."},
+        {"Exercise": "Hammer Curls", "Range": "12–15", "Info": "No swinging."},
+        {"Exercise": "Upright Row", "Range": "10–12", "Info": "To mid-chest only."},
+        {"Exercise": "Lateral Raise", "Range": "15–20", "Info": "Pump work, clean form."},
     ],
     "Lower": [
-        {"Exercise": "Bulgarian Split Squat / Reverse Lunge", "Range": "6–8/leg", "Info": "Quads/glutes. Balance + control."},
+        {"Exercise": "Bulgarian Split Squat", "Range": "6–8/leg", "Info": "Quads/glutes. Balance + control."},
         {"Exercise": "Romanian Deadlift", "Range": "~8", "Info": "Hamstrings/glutes. Hinge tight."},
-        {"Exercise": "Step-Ups or Hip Thrusts", "Range": "10–12", "Info": "Glute focus. Full lockout."},
-        {"Exercise": "Calf Raise (BW + DB)", "Range": "12–15", "Info": "Pause at stretch."},
-        {"Exercise": "Core: Plank / Hollow / Side Plank", "Range": "circuit", "Info": "Brace + breathe."},
+        {"Exercise": "Hip Thrusts", "Range": "10–12", "Info": "Glute focus. Full lockout."},
+        {"Exercise": "Calf Raises", "Range": "12–15", "Info": "Pause at stretch."},
+        {"Exercise": "Hanging Leg Raises", "Range": "8-10", "Info": "Slow eccentric."},
     ],
 }
 
@@ -121,8 +121,7 @@ st.markdown(
 )
 
 # ------------------ HEADER ------------------
-st.title("Compact Workout Logger")
-st.caption("Minimal scrolling • Accordion cards • Sticky Save")
+st.title("SpeedyTraining")
 
 # Tabs: Workouts, Progression Guide, Warm-up
 work_tab, rules_tab, warm_tab = st.tabs(["🏋️ Workouts", "📈 Progression Guide", "🔥 Warm-up"])
@@ -185,7 +184,7 @@ if picked:
             st.markdown(f"<span class='info-chip'>{info}</span>", unsafe_allow_html=True)
 
         is_open = st.session_state.open_cards.get(name, False)
-        btn_label = "📝 Log sets" if not is_open else "⬆️ Hide log"
+        btn_label = "⬇️ Log sets" if not is_open else "⬆️ Hide log"
         if st.button(btn_label, key=f"toggle_{name}"):
             st.session_state.open_cards[name] = not is_open
             st.rerun()
