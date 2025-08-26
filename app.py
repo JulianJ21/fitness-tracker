@@ -2,11 +2,9 @@ import streamlit as st
 import pandas as pd
 from datetime import datetime
 from pathlib import Path
-import math
 
 st.set_page_config(page_title="FitApp • Compact Mode", page_icon="💪", layout="centered")
 
-# ------------------ STORAGE ------------------
 LOG_PATH = Path("workout_logs.csv")
 COLUMNS = [
     "session_id","session_start","session_end","workout_name",
@@ -36,7 +34,6 @@ def save_rows(rows: list):
     df_out.to_csv(LOG_PATH, index=False)
     return df_new
 
-# Epley 1RM
 def est_1rm(weight, reps):
     try:
         r = int(reps)
@@ -47,7 +44,6 @@ def est_1rm(weight, reps):
     except Exception:
         return None
 
-# Last session summary & suggestions
 def last_summary(logs, ex_name):
     if logs.empty:
         return {"weight": 0.0, "reps": [], "n_sets": 0}
@@ -61,46 +57,29 @@ def last_summary(logs, ex_name):
     reps = last_df["reps"].astype(int).tolist()
     return {"weight": weight, "reps": reps, "n_sets": len(reps)}
 
-# ------------------ WORKOUT DATA ------------------
 WORKOUTS = {
     "Upper A": [
-        {"Exercise": "Bench Press (BB/DB)", "Range": "6–8"},
-        {"Exercise": "Pull-Ups (neutral/wide)", "Range": "6–8 (or rep-goal)"},
-        {"Exercise": "Overhead Press (DB/bands)", "Range": "6–8"},
-        {"Exercise": "Row (BB or 1-Arm DB)", "Range": "~8"},
-        {"Exercise": "Dips (weighted if able)", "Range": "8–10"},
-        {"Exercise": "EZ Bar Curl", "Range": "10–12"},
-        {"Exercise": "Lateral Raise", "Range": "15–20"},
-    ],
-    "Lower": [
-        {"Exercise": "Bulgarian Split Squat / Reverse Lunge", "Range": "6–8/leg"},
-        {"Exercise": "Romanian Deadlift", "Range": "~8"},
-        {"Exercise": "Step-Ups or Hip Thrusts", "Range": "10–12"},
-        {"Exercise": "Calf Raise (BW + DB)", "Range": "12–15"},
-        {"Exercise": "Core: Plank / Hollow / Side Plank", "Range": "circuit"},
-    ],
-    "Upper B": [
-        {"Exercise": "Incline DB Press", "Range": "8–10"},
-        {"Exercise": "Chin-Ups", "Range": "AMRAP/rep-goal"},
-        {"Exercise": "Arnold Press / DB OHP", "Range": "10–12"},
-        {"Exercise": "Skullcrusher (EZ Bar)", "Range": "12–15"},
-        {"Exercise": "Incline DB Curl or Hammer Curl", "Range": "12–15"},
-        {"Exercise": "Upright Row (EZ/Bands)", "Range": "10–12"},
-        {"Exercise": "Lateral Raise (variation/giant set)", "Range": "15–20"},
+        {"Exercise": "Bench Press (BB/DB)", "Range": "6–8", "Info": "Main chest press. Focus on double progression."},
+        {"Exercise": "Pull-Ups (neutral/wide)", "Range": "6–8 (or rep-goal)", "Info": "Back & biceps. Add load when rep goal reached."},
+        {"Exercise": "Overhead Press (DB/bands)", "Range": "6–8", "Info": "Delts & triceps. Strict form."},
+        {"Exercise": "Row (BB or 1-Arm DB)", "Range": "~8", "Info": "Back thickness. Full range."},
+        {"Exercise": "Dips (weighted if able)", "Range": "8–10", "Info": "Chest & triceps. Keep shoulders safe."},
+        {"Exercise": "EZ Bar Curl", "Range": "10–12", "Info": "Biceps isolation. Squeeze at top."},
+        {"Exercise": "Lateral Raise", "Range": "15–20", "Info": "Shoulders. Controlled, light weight."},
     ],
 }
 
-# ------------------ SESSION STATE ------------------
 if "picked" not in st.session_state:
     st.session_state.picked = None
 if "session_start" not in st.session_state:
     st.session_state.session_start = None
 if "sets_entered" not in st.session_state:
-    st.session_state.sets_entered = {}  # {exercise: [reps,...]}
+    st.session_state.sets_entered = {}
 if "weights" not in st.session_state:
-    st.session_state.weights = {}       # {exercise: weight}
+    st.session_state.weights = {}
+if "open_cards" not in st.session_state:
+    st.session_state.open_cards = {}
 
-# ------------------ STYLES ------------------
 st.markdown(
     """
     <style>
@@ -108,33 +87,25 @@ st.markdown(
       .hdr-left {display:flex; gap:10px; align-items:baseline;}
       .hdr-title {font-weight:600;}
       .hdr-meta {opacity:0.75; font-size:0.9em;}
-      .tiny-btn button {padding:2px 6px; font-size:0.85em;}
-      .footer-bar {position:fixed; left:0; right:0; bottom:0; padding:10px 16px; backdrop-filter: blur(8px); background: rgba(255,255,255,0.75); border-top:1px solid rgba(0,0,0,0.08); z-index:9999;}
+      .footer-bar {position:fixed; left:0; right:0; bottom:0; padding:10px 16px; backdrop-filter: blur(8px); background: rgba(255,255,255,0.9); border-top:1px solid rgba(0,0,0,0.08); z-index:9999;}
       .footer-inner {display:flex; gap:10px; align-items:center; justify-content:space-between; max-width: 900px; margin: 0 auto;}
       .footer-title {font-weight:600; opacity:0.8}
       .pill {display:inline-block; padding:2px 8px; border-radius:999px; background:rgba(0,0,0,0.06); font-size:12px; margin-left:6px}
       .info-chip {display:inline-block; padding:2px 6px; border-radius:8px; background:rgba(0,0,0,0.05); font-size:12px; margin-left:6px}
-      .card {padding:8px 6px; border-radius:12px; border:1px solid rgba(0,0,0,0.08); margin-bottom:8px}
     </style>
     """,
     unsafe_allow_html=True,
 )
-# ------------------ UI: HEADER ------------------
-st.title("Compact Workout Logger")
-st.caption("Minimal scrolling • Dynamic rows • Accordion cards • Sticky Save")
 
-cols = st.columns(3)
-if cols[0].button("Upper A", use_container_width=True):
+st.title("Compact Workout Logger")
+st.caption("Minimal scrolling • Accordion cards • Sticky Save")
+
+if st.button("Upper A", use_container_width=True):
     st.session_state.picked = "Upper A"
-if cols[1].button("Lower", use_container_width=True):
-    st.session_state.picked = "Lower"
-if cols[2].button("Upper B", use_container_width=True):
-    st.session_state.picked = "Upper B"
 
 picked = st.session_state.picked
 logs = load_logs()
 
-# Remove sidebar save; we'll add a sticky footer bar instead
 if picked:
     if not st.session_state.session_start:
         st.session_state.session_start = datetime.now().isoformat(timespec="seconds")
@@ -150,108 +121,87 @@ if picked:
         last_w = float(last["weight"]) if last else 0.0
         last_sets = last["n_sets"] if last else 0
         last_avg_reps = int(round(sum(last["reps"])/last_sets)) if last_sets else 0
-
-        # Carry current weight from state or last session
         cur_w = st.session_state.weights.get(name, last_w)
 
-        # Accordion header with meta + actions
-        header = st.container()
-        with header:
-            st.markdown(
-                f"<div class='header-row'>"
-                f"  <div class='hdr-left'>"
-                f"    <span class='hdr-title'>{name}</span>"
-                f"    <span class='hdr-meta'>• {cur_w:g} kg • Last: {last_sets}×{last_avg_reps if last_avg_reps else '-'} </span>"
-                f"  </div>"
-                f"  <div class='hdr-actions'>"
-                f"  </div>"
-                f"</div>",
-                unsafe_allow_html=True,
-            )
-        with st.expander("Log sets", expanded=False):
-            # Adjust weight (hidden by default)
-            with st.expander("⚖️ Adjust weight", expanded=False):
-                cur_w = st.number_input("Weight (kg)", value=float(cur_w), min_value=0.0, step=0.5, key=f"w_{name}")
-                st.session_state.weights[name] = cur_w
+        header_html = f"<div class='header-row'><div class='hdr-left'><span class='hdr-title'>{name}</span><span class='hdr-meta'>• {cur_w:g} kg • Last: {last_sets}×{last_avg_reps if last_avg_reps else '-'} </span></div></div>"
+        st.markdown(header_html, unsafe_allow_html=True)
 
-            # Prefill controls (icons in a small row)
-            cA, cB, cC = st.columns([1,1,6])
-            if cA.button("📋 Prefill last", key=f"prefill_{name}"):
-                if last and last["reps"]:
-                    st.session_state.sets_entered[name] = last["reps"].copy()
-                else:
+        info = ex.get("Info", "")
+        if info:
+            st.markdown(f"<span class='info-chip'>{info}</span>", unsafe_allow_html=True)
+
+        is_open = st.session_state.open_cards.get(name, False)
+        btn_label = "📝 Log sets" if not is_open else "⬆️ Hide log"
+        if st.button(btn_label, key=f"toggle_{name}"):
+            st.session_state.open_cards[name] = not is_open
+            st.rerun()
+
+        if st.session_state.open_cards.get(name, False):
+            with st.container():
+                with st.expander("⚖️ Adjust weight", expanded=False):
+                    cur_w = st.number_input("Weight (kg)", value=float(cur_w), min_value=0.0, step=0.5, key=f"w_{name}")
+                    st.session_state.weights[name] = cur_w
+
+                cA, cB = st.columns([1,1])
+                if cA.button("📋 Prefill last", key=f"prefill_{name}"):
+                    if last and last["reps"]:
+                        st.session_state.sets_entered[name] = last["reps"].copy()
+                    else:
+                        st.session_state.sets_entered[name] = [0]
+                    st.rerun()
+                if cB.button("♻️ Reset", key=f"reset_{name}"):
                     st.session_state.sets_entered[name] = [0]
-                st.rerun()
-            if cB.button("♻️ Reset", key=f"reset_{name}"):
-                st.session_state.sets_entered[name] = [0]
-                st.rerun()
-
-            # Dynamic rows (start minimal)
-            if name not in st.session_state.sets_entered:
-                st.session_state.sets_entered[name] = [0]
-            reps_list = st.session_state.sets_entered[name]
-
-            # Render rows with small +/- steppers
-            for i in range(len(reps_list)):
-                cols_row = st.columns([2,1,1,1])
-                cols_row[0].markdown(f"Set {i+1}")
-                rep_key = f"reps_{name}_{i+1}"
-                # Number input (compact)
-                reps_val = cols_row[1].number_input("reps", min_value=0, max_value=50, value=int(reps_list[i]), step=1, key=rep_key, label_visibility="collapsed")
-                # Quick - / +
-                if cols_row[2].button("-", key=f"minus_{name}_{i}"):
-                    reps_val = max(0, int(reps_val) - 1)
-                    st.session_state.sets_entered[name][i] = reps_val
                     st.rerun()
-                if cols_row[3].button("+", key=f"plus_{name}_{i}"):
-                    reps_val = int(reps_val) + 1
-                    st.session_state.sets_entered[name][i] = reps_val
+
+                if name not in st.session_state.sets_entered:
+                    st.session_state.sets_entered[name] = [0]
+                reps_list = st.session_state.sets_entered[name]
+
+                for i in range(len(reps_list)):
+                    cols_row = st.columns([2,3])
+                    cols_row[0].markdown(f"Set {i+1}")
+                    rep_key = f"reps_{name}_{i+1}"
+                    reps_val = cols_row[1].number_input("reps", min_value=0, max_value=50, value=int(reps_list[i]), step=1, key=rep_key, label_visibility="collapsed")
+                    st.session_state.sets_entered[name][i] = int(reps_val)
+
+                c1, c2 = st.columns([1,1])
+                if c1.button("+ Add Set", key=f"add_{name}"):
+                    reps_list.append(0)
+                    st.session_state.sets_entered[name] = reps_list
                     st.rerun()
-                # Save back current value
-                st.session_state.sets_entered[name][i] = int(reps_val)
+                if c2.button("Copy last set → all", key=f"copy_{name}"):
+                    if reps_list:
+                        last_val = int(reps_list[-1])
+                        st.session_state.sets_entered[name] = [last_val for _ in reps_list]
+                    st.rerun()
 
-            c1, c2, c3 = st.columns(3)
-            if c1.button("+ Add Set", key=f"add_{name}"):
-                reps_list.append(0)
-                st.session_state.sets_entered[name] = reps_list
-                st.rerun()
-            if c2.button("Copy last set → all", key=f"copy_{name}"):
-                if reps_list:
-                    last_val = int(reps_list[-1])
-                    st.session_state.sets_entered[name] = [last_val for _ in reps_list]
-                st.rerun()
-            # minimal per-exercise totals
-            total_reps = sum(int(x) for x in reps_list)
-            c3.markdown(f"**Total reps:** {total_reps}")
+                for idx, reps in enumerate(reps_list, start=1):
+                    reps = int(reps)
+                    if reps > 0:
+                        vol = float(cur_w) * reps
+                        new_rows.append({
+                            "session_id": session_id,
+                            "session_start": st.session_state.session_start,
+                            "session_end": "",
+                            "workout_name": picked,
+                            "exercise_name": name,
+                            "set_idx": idx,
+                            "is_warmup": False,
+                            "weight_kg": float(cur_w),
+                            "added_load_kg": 0,
+                            "reps": reps,
+                            "notes": "",
+                            "est_1rm": est_1rm(cur_w, reps),
+                            "volume_kg": vol,
+                            "total_reps": reps,
+                        })
 
-            # Collect rows (only >0 reps)
-            for idx, reps in enumerate(reps_list, start=1):
-                reps = int(reps)
-                if reps > 0:
-                    vol = float(cur_w) * reps
-                    new_rows.append({
-                        "session_id": session_id,
-                        "session_start": st.session_state.session_start,
-                        "session_end": "",
-                        "workout_name": picked,
-                        "exercise_name": name,
-                        "set_idx": idx,
-                        "is_warmup": False,
-                        "weight_kg": float(cur_w),
-                        "added_load_kg": 0,
-                        "reps": reps,
-                        "notes": "",
-                        "est_1rm": est_1rm(cur_w, reps),
-                        "volume_kg": vol,
-                        "total_reps": reps,
-                    })
+    st.markdown("<div class='footer-bar'><div class='footer-inner'>" 
+                f"<div class='footer-title'>Session: {picked} <span class='pill'>{datetime.now().strftime('%H:%M')}</span></div>"
+                "</div></div>", unsafe_allow_html=True)
 
-    # Sticky/Sidebar Save actions
-    # Floating visual button (non-functional anchor for aesthetics)
-    st.markdown("<div class='sticky-save'>""</div>", unsafe_allow_html=True)
-
-    # Real save lives in sidebar (always visible)
-    if sidebar_save:
+    save_click = st.button("✅ Finish & Save", key="footer_save")
+    if save_click:
         end_ts = datetime.now().isoformat(timespec="seconds")
         if new_rows:
             for r in new_rows:
@@ -263,7 +213,6 @@ if picked:
                         .reset_index())
             st.markdown("#### Session Summary")
             st.dataframe(by_ex, hide_index=True, use_container_width=True)
-            # Reset after save
             st.session_state.session_start = None
             st.session_state.sets_entered = {}
             st.session_state.weights = {}
