@@ -59,24 +59,24 @@ def last_summary(logs, ex_name):
 
 WORKOUTS = {
     "Upper A": [
-        {"Exercise": "Bench Press (BB/DB)", "Range": "6–8", "Info": "Main chest press. Focus on double progression."},
-        {"Exercise": "Pull-Ups (neutral/wide)", "Range": "6–8 (or rep-goal)", "Info": "Back & biceps. Add load when rep goal reached."},
-        {"Exercise": "Overhead Press (DB/bands)", "Range": "6–8", "Info": "Delts & triceps. Strict form."},
+        {"Exercise": "Bench Press (BB/DB)", "Range": "6–8", "Info": "Main chest press. Double progression."},
+        {"Exercise": "Pull-Ups (neutral/wide)", "Range": "6–8 (or rep-goal)", "Info": "Back/biceps. Add load post-goal."},
+        {"Exercise": "Overhead Press (DB/bands)", "Range": "6–8", "Info": "Delts/triceps. Strict form."},
         {"Exercise": "Row (BB or 1-Arm DB)", "Range": "~8", "Info": "Back thickness. Full range."},
-        {"Exercise": "Dips (weighted if able)", "Range": "8–10", "Info": "Chest & triceps. Keep shoulders safe."},
-        {"Exercise": "EZ Bar Curl", "Range": "10–12", "Info": "Biceps isolation. Squeeze at top."},
-        {"Exercise": "Lateral Raise", "Range": "15–20", "Info": "Shoulders. Controlled, light weight."},
+        {"Exercise": "Dips (weighted if able)", "Range": "8–10", "Info": "Chest/triceps. Shoulder-friendly depth."},
+        {"Exercise": "EZ Bar Curl", "Range": "10–12", "Info": "Biceps isolation. Squeeze top."},
+        {"Exercise": "Lateral Raise", "Range": "15–20", "Info": "Delts. Light, clean reps."},
     ],
     "Lower": [
-        {"Exercise": "Bulgarian Split Squat / Reverse Lunge", "Range": "6–8/leg", "Info": "Quads & glutes. Balance + control."},
-        {"Exercise": "Romanian Deadlift", "Range": "~8", "Info": "Hamstrings & glutes. Hinge tight."},
+        {"Exercise": "Bulgarian Split Squat / Reverse Lunge", "Range": "6–8/leg", "Info": "Quads/glutes. Balance + control."},
+        {"Exercise": "Romanian Deadlift", "Range": "~8", "Info": "Hamstrings/glutes. Hinge tight."},
         {"Exercise": "Step-Ups or Hip Thrusts", "Range": "10–12", "Info": "Glute focus. Full lockout."},
         {"Exercise": "Calf Raise (BW + DB)", "Range": "12–15", "Info": "Pause at stretch."},
         {"Exercise": "Core: Plank / Hollow / Side Plank", "Range": "circuit", "Info": "Brace + breathe."},
     ],
     "Upper B": [
         {"Exercise": "Incline DB Press", "Range": "8–10", "Info": "Upper chest. Controlled tempo."},
-        {"Exercise": "Chin-Ups", "Range": "AMRAP/rep-goal", "Info": "Lats & biceps. Add load post-goal."},
+        {"Exercise": "Chin-Ups", "Range": "AMRAP/rep-goal", "Info": "Lats/biceps. Add load post-goal."},
         {"Exercise": "Arnold Press / DB OHP", "Range": "10–12", "Info": "Delts focus. Smooth rotation."},
         {"Exercise": "Skullcrusher (EZ Bar)", "Range": "12–15", "Info": "Elbows steady."},
         {"Exercise": "Incline DB Curl or Hammer Curl", "Range": "12–15", "Info": "No swinging."},
@@ -85,17 +85,19 @@ WORKOUTS = {
     ],
 }
 
+# ------------------ STATE ------------------
 if "picked" not in st.session_state:
     st.session_state.picked = None
 if "session_start" not in st.session_state:
     st.session_state.session_start = None
 if "sets_entered" not in st.session_state:
-    st.session_state.sets_entered = {}
+    st.session_state.sets_entered = {}  # {exercise: [reps,...]}
 if "weights" not in st.session_state:
-    st.session_state.weights = {}
+    st.session_state.weights = {}       # {exercise: weight}
 if "open_cards" not in st.session_state:
     st.session_state.open_cards = {}
 
+# ------------------ STYLES ------------------
 st.markdown(
     """
     <style>
@@ -113,6 +115,7 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
+# ------------------ HEADER ------------------
 st.title("Compact Workout Logger")
 st.caption("Minimal scrolling • Accordion cards • Sticky Save")
 
@@ -133,7 +136,6 @@ if picked:
     session_id = f"{datetime.now().strftime('%Y%m%d-%H%M')}-{picked.replace(' ', '')}"
 
     st.subheader(f"{picked} – Compact Session")
-
     new_rows = []
 
     for ex in WORKOUTS[picked]:
@@ -141,12 +143,11 @@ if picked:
         last = last_summary(logs, name)
         last_w = float(last["weight"]) if last else 0.0
         last_sets = last["n_sets"] if last else 0
-        last_avg_reps = int(round(sum(last["reps"])/last_sets)) if last_sets else 0
+        last_avg_reps = int(round(sum(last["reps"])/max(1,last_sets))) if last_sets else 0
         cur_w = st.session_state.weights.get(name, last_w)
 
-        header_html = f"<div class='header-row'><div class='hdr-left'><span class='hdr-title'>{name}</span><span class='hdr-meta'>• {cur_w:g} kg • Last: {last_sets}×{last_avg_reps if last_avg_reps else '-'} </span></div></div>"
-        st.markdown(header_html, unsafe_allow_html=True)
-
+        # Header row
+        st.markdown(f"<div class='header-row'><div class='hdr-left'><span class='hdr-title'>{name}</span><span class='hdr-meta'>• {cur_w:g} kg • Last: {last_sets}×{last_avg_reps if last_avg_reps else '-'} </span></div></div>", unsafe_allow_html=True)
         info = ex.get("Info", "")
         if info:
             st.markdown(f"<span class='info-chip'>{info}</span>", unsafe_allow_html=True)
@@ -163,12 +164,10 @@ if picked:
                     cur_w = st.number_input("Weight (kg)", value=float(cur_w), min_value=0.0, step=0.5, key=f"w_{name}")
                     st.session_state.weights[name] = cur_w
 
+                # Prefill/Reset
                 cA, cB = st.columns([1,1])
                 if cA.button("📋 Prefill last", key=f"prefill_{name}"):
-                    if last and last["reps"]:
-                        st.session_state.sets_entered[name] = last["reps"].copy()
-                    else:
-                        st.session_state.sets_entered[name] = [0]
+                    st.session_state.sets_entered[name] = last["reps"].copy() if last and last["reps"] else [0]
                     st.rerun()
                 if cB.button("♻️ Reset", key=f"reset_{name}"):
                     st.session_state.sets_entered[name] = [0]
@@ -176,27 +175,41 @@ if picked:
 
                 if name not in st.session_state.sets_entered:
                     st.session_state.sets_entered[name] = [0]
+
                 reps_list = st.session_state.sets_entered[name]
+                # ---- FORM to avoid reruns on each keypress ----
+                with st.form(f"form_{name}", clear_on_submit=False):
+                    for i in range(len(reps_list)):
+                        colL, colR = st.columns([2,3])
+                        colL.markdown(f"Set {i+1}")
+                        rep_key = f"reps_{name}_{i+1}"
+                        val = colR.number_input("reps", min_value=0, max_value=50, value=int(reps_list[i]), step=1, key=rep_key, label_visibility="collapsed")
+                        # write to state after submit
+                    c1, c2, c3 = st.columns([1,1,2])
+                    add_clicked = c1.form_submit_button("+ Add Set")
+                    copy_clicked = c2.form_submit_button("Copy last set → all")
+                    save_changes = c3.form_submit_button("Apply changes")
 
+                # After form submit: sync inputs back to sets_entered
+                # Read values from widget keys to ensure we capture typed numbers
+                updated = []
                 for i in range(len(reps_list)):
-                    cols_row = st.columns([2,3])
-                    cols_row[0].markdown(f"Set {i+1}")
                     rep_key = f"reps_{name}_{i+1}"
-                    reps_val = cols_row[1].number_input("reps", min_value=0, max_value=50, value=int(reps_list[i]), step=1, key=rep_key, label_visibility="collapsed")
-                    st.session_state.sets_entered[name][i] = int(reps_val)
+                    updated.append(int(st.session_state.get(rep_key, reps_list[i])))
+                st.session_state.sets_entered[name] = updated
 
-                c1, c2 = st.columns([1,1])
-                if c1.button("+ Add Set", key=f"add_{name}"):
-                    reps_list.append(0)
-                    st.session_state.sets_entered[name] = reps_list
+                if add_clicked:
+                    st.session_state.sets_entered[name].append(0)
                     st.rerun()
-                if c2.button("Copy last set → all", key=f"copy_{name}"):
-                    if reps_list:
-                        last_val = int(reps_list[-1])
-                        st.session_state.sets_entered[name] = [last_val for _ in reps_list]
+                if copy_clicked:
+                    rl = st.session_state.sets_entered[name]
+                    if rl:
+                        last_val = int(rl[-1])
+                        st.session_state.sets_entered[name] = [last_val for _ in rl]
                     st.rerun()
 
-                for idx, reps in enumerate(reps_list, start=1):
+                # Collect rows for save
+                for idx, reps in enumerate(st.session_state.sets_entered[name], start=1):
                     reps = int(reps)
                     if reps > 0:
                         vol = float(cur_w) * reps
@@ -217,10 +230,8 @@ if picked:
                             "total_reps": reps,
                         })
 
-    st.markdown("<div class='footer-bar'><div class='footer-inner'>" 
-                f"<div class='footer-title'>Session: {picked} <span class='pill'>{datetime.now().strftime('%H:%M')}</span></div>"
-                "</div></div>", unsafe_allow_html=True)
-
+    # Sticky footer UI + real save button
+    st.markdown(f"<div class='footer-bar'><div class='footer-inner'><div class='footer-title'>Session: {picked} <span class='pill'>{datetime.now().strftime('%H:%M')}</span></div></div></div>", unsafe_allow_html=True)
     save_click = st.button("✅ Finish & Save", key="footer_save")
     if save_click:
         end_ts = datetime.now().isoformat(timespec="seconds")
@@ -228,7 +239,7 @@ if picked:
             for r in new_rows:
                 r["session_end"] = end_ts
             df_new = save_rows(new_rows)
-            st.success(f"Saved {len(df_new)} sets to {LOG_PATH.name}.")
+            st.success(f"Saved {len[df_new]} sets to {LOG_PATH.name}.")
             by_ex = (df_new.groupby("exercise_name")
                         .agg(sets=("set_idx","count"), top_weight=("weight_kg","max"), total_reps=("reps","sum"), volume=("volume_kg","sum"))
                         .reset_index())
