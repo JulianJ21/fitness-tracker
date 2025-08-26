@@ -116,15 +116,47 @@ st.markdown(
 )
 
 # ------------------ HEADER ------------------
-st.title("SpeedyTraining")
+st.title("Compact Workout Logger")
+st.caption("Minimal scrolling • Accordion cards • Sticky Save")
 
-cols = st.columns(3)
-if cols[0].button("Upper (Strength)", use_container_width=True):
-    st.session_state.picked = "Upper (Strength)"
-if cols[1].button("Upper (Volume)", use_container_width=True):
-    st.session_state.picked = "Upper (Volume)"
-if cols[2].button("Lower", use_container_width=True):
-    st.session_state.picked = "Lower"
+# Create tabs for Home and Progression Guide
+tabs = st.tabs(["🏋️ Workouts", "📈 Progression Guide"])
+
+with tabs[0]:
+    st.markdown("""
+    <style>
+    .workout-btn button {
+        background-color: #f0f2f6;
+        border-radius: 12px;
+        padding: 12px;
+        font-size: 16px;
+        font-weight: 600;
+        margin: 6px 0;
+        width: 100%;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
+    cols = st.columns(3)
+    with cols[0]:
+        if st.button("Upper (Strength)", key="btn_strength"):
+            st.session_state.picked = "Upper (Strength)"
+    with cols[1]:
+        if st.button("Upper (Volume)", key="btn_volume"):
+            st.session_state.picked = "Upper (Volume)"
+    with cols[2]:
+        if st.button("Lower", key="btn_lower"):
+            st.session_state.picked = "Lower"
+
+with tabs[1]:
+    st.subheader("How to Progress in Weights")
+    st.markdown("""
+    - **Double progression rule:** Stay in the rep range. When you hit the top end on all sets, increase the weight next session.
+    - **Upper (Strength):** Add ~2.5 kg once you reach top reps in all sets.
+    - **Upper (Volume):** Push for more reps first; add weight when you comfortably exceed the top of the range.
+    - **Lower:** Focus on form. Add 2.5–5 kg cautiously when rep targets are hit with clean execution.
+    - **Isolation lifts:** Prefer adding reps before weight.
+    """)
 
 picked = st.session_state.picked
 logs = load_logs()
@@ -152,7 +184,7 @@ if picked:
             st.markdown(f"<span class='info-chip'>{info}</span>", unsafe_allow_html=True)
 
         is_open = st.session_state.open_cards.get(name, False)
-        btn_label = "⬇️ Log sets" if not is_open else "⬆️ Hide log"
+        btn_label = "📝 Log sets" if not is_open else "⬆️ Hide log"
         if st.button(btn_label, key=f"toggle_{name}"):
             st.session_state.open_cards[name] = not is_open
             st.rerun()
