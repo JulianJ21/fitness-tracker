@@ -116,8 +116,7 @@ st.markdown(
 )
 
 # ------------------ HEADER ------------------
-st.title("Compact Workout Logger")
-st.caption("Minimal scrolling • Accordion cards • Sticky Save")
+st.title("SpeedyTraining")
 
 cols = st.columns(3)
 if cols[0].button("Upper (Strength)", use_container_width=True):
