@@ -103,6 +103,8 @@ if "last_workout" not in st.session_state:
     st.session_state.last_workout = None
 if "session_start" not in st.session_state:
     st.session_state.session_start = None
+if "picked" not in st.session_state:
+    st.session_state.picked = None
 
 rotation = ["Upper A", "Lower", "Upper B"]
 if st.session_state.last_workout in rotation:
@@ -114,13 +116,14 @@ else:
 st.markdown(f"<div style='text-align:center;opacity:0.8'>Suggested next: <b>{suggested}</b> (override anytime)</div>", unsafe_allow_html=True)
 
 cols = st.columns(3)
-picked = None
 if cols[0].button("Upper A", use_container_width=True):
-    picked = "Upper A"
+    st.session_state.picked = "Upper A"
 if cols[1].button("Lower", use_container_width=True):
-    picked = "Lower"
+    st.session_state.picked = "Lower"
 if cols[2].button("Upper B", use_container_width=True):
-    picked = "Upper B"
+    st.session_state.picked = "Upper B"
+
+picked = st.session_state.picked
 
 with st.expander("Warm-Up Blueprint (5–8 min)"):
     for step in WARMUP_BLUEPRINT:
