@@ -1,6 +1,5 @@
 import streamlit as st
 import pandas as pd
-import matplotlib.pyplot as plt
 from datetime import datetime
 from pathlib import Path
 
@@ -36,7 +35,7 @@ def est_1rm(weight, reps):
         return None
 
 # ---------------------------------
-# DATA: Workouts
+# DATA: Workouts & Rules (minimal)
 # ---------------------------------
 WORKOUTS = {
     "Upper A": [
@@ -86,6 +85,7 @@ def last_load_for(exercise_name, logs):
     df = logs[logs["exercise_name"] == exercise_name]
     if df.empty:
         return None
+    # choose last non-warmup set weight
     df = df[df["is_warmup"] == False]
     if df.empty:
         return None
@@ -140,20 +140,26 @@ if picked:
     st.subheader(f"{picked} – Quick Logger")
     st.caption(RULEBOOK_NOTE)
 
+    # Session id
     session_id = f"{datetime.now().strftime('%Y%m%d-%H%M')}-{picked.replace(' ', '')}" 
 
+    # build a reps-only logger: we prefill weights from last time and hide them unless expanded
     new_rows = []
 
     for ex in WORKOUTS[picked]:
         name = ex["Exercise"]
         with st.container():
             st.markdown(f"**{name}**  ")
+            # last weight suggestion
             last_w = last_load_for(name, logs)
             suggested_w = st.number_input(
                 f"Suggested weight (kg) — optional",
                 value=float(last_w) if last_w is not None else 0.0,
                 min_value=0.0, step=0.5, key=f"w_{name}"
             )
+            st.caption("Leave as-is; you only need to enter reps below. Adjust weight only if you want.")
+
+            # choose number of sets first (defaults sensible by category)
             default_sets = 4 if "Press" in name or "Deadlift" in name or "Squat" in name else 3
             n_sets = st.number_input("Sets", min_value=1, max_value=8, value=default_sets, step=1, key=f"sets_{name}")
 
@@ -162,6 +168,7 @@ if picked:
                 reps = st.number_input(f"Reps – Set {s}", min_value=0, max_value=50, value=0, step=1, key=f"reps_{name}_{s}")
                 reps_inputs.append(reps)
 
+            # create rows (warmups excluded from this minimal logger)
             for idx, reps in enumerate(reps_inputs, start=1):
                 if reps > 0:
                     vol = (suggested_w) * reps if suggested_w else 0
@@ -186,6 +193,7 @@ if picked:
     st.markdown("---")
     save = st.button("✅ Finish Session & Save", use_container_width=True)
     if save:
+        # finalize session end, append to CSV
         end_ts = datetime.now().isoformat(timespec="seconds")
         if new_rows:
             for r in new_rows:
@@ -205,58 +213,13 @@ if picked:
             st.warning("No reps entered — nothing saved.")
         st.session_state.session_start = None
 
+    # History preview for context
     with st.expander("Recent History (this workout)"):
         hist = logs[logs["workout_name"] == picked].sort_values("session_end").tail(50)
         if hist.empty:
             st.write("No history yet. Today sets your baseline.")
         else:
             st.dataframe(hist[["session_end","exercise_name","set_idx","weight_kg","reps","volume_kg"]], hide_index=True, use_container_width=True)
-
-# ---------------------------------
-# PROGRESS GRAPHS (Sketch)
-# ---------------------------------
-
-st.markdown("---")
-st.header("📈 Progress Dashboard (Sketch)")
-
-logs = load_logs()
-if logs.empty:
-    st.info("No logs yet. Train & save sessions to see graphs.")
-else:
-    # convert session_end to datetime
-    try:
-        logs["session_end"] = pd.to_datetime(logs["session_end"], errors="coerce")
-    except:
-        pass
-
-    exercise_list = sorted(logs["exercise_name"].dropna().unique())
-    ex_choice = st.selectbox("Select exercise to view progress", exercise_list)
-
-    df_ex = logs[logs["exercise_name"] == ex_choice].copy()
-    if df_ex.empty:
-        st.write("No data for this exercise yet.")
-    else:
-        # Plot top set weight*reps and volume over time
-        df_ex["tonnage"] = df_ex["weight_kg"] * df_ex["reps"]
-        grouped = df_ex.groupby("session_end").agg({"weight_kg":"max","reps":"max","tonnage":"sum","est_1rm":"max"}).reset_index()
-
-        st.markdown("**Top Set (weight × reps)**")
-        fig, ax = plt.subplots()
-        ax.plot(grouped["session_end"], grouped["weight_kg"]*grouped["reps"], marker="o")
-        ax.set_ylabel("Weight × Reps")
-        st.pyplot(fig)
-
-        st.markdown("**Session Volume (kg)**")
-        fig2, ax2 = plt.subplots()
-        ax2.plot(grouped["session_end"], grouped["tonnage"], marker="s", color="tab:orange")
-        ax2.set_ylabel("Total Volume (kg)")
-        st.pyplot(fig2)
-
-        st.markdown("**Estimated 1RM (Epley)**")
-        fig3, ax3 = plt.subplots()
-        ax3.plot(grouped["session_end"], grouped["est_1rm"], marker="^", color="tab:green")
-        ax3.set_ylabel("Est. 1RM (kg)")
-        st.pyplot(fig3)
 
 # ---------------------------------
 # PROGRESS GRAPHS (Beta)
