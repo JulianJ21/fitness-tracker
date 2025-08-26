@@ -67,6 +67,13 @@ WORKOUTS = {
         {"Exercise": "EZ Bar Curl", "Range": "10–12", "Info": "Biceps isolation. Squeeze top."},
         {"Exercise": "Lateral Raise", "Range": "15–20", "Info": "Delts. Light, clean reps."},
     ],
+    "Lower": [
+        {"Exercise": "Bulgarian Split Squat / Reverse Lunge", "Range": "6–8/leg", "Info": "Quads/glutes. Balance + control."},
+        {"Exercise": "Romanian Deadlift", "Range": "~8", "Info": "Hamstrings/glutes. Hinge tight."},
+        {"Exercise": "Step-Ups or Hip Thrusts", "Range": "10–12", "Info": "Glute focus. Full lockout."},
+        {"Exercise": "Calf Raise (BW + DB)", "Range": "12–15", "Info": "Pause at stretch."},
+        {"Exercise": "Core: Plank / Hollow / Side Plank", "Range": "circuit", "Info": "Brace + breathe."},
+    ],
     "Upper B": [
         {"Exercise": "Incline DB Press", "Range": "8–10", "Info": "Upper chest. Controlled tempo."},
         {"Exercise": "Chin-Ups", "Range": "AMRAP/rep-goal", "Info": "Lats/biceps. Add load post-goal."},
@@ -76,14 +83,6 @@ WORKOUTS = {
         {"Exercise": "Upright Row (EZ/Bands)", "Range": "10–12", "Info": "To mid-chest only."},
         {"Exercise": "Lateral Raise (variation/giant set)", "Range": "15–20", "Info": "Pump work, clean form."},
     ],
-    "Lower": [
-        {"Exercise": "Bulgarian Split Squat / Reverse Lunge", "Range": "6–8/leg", "Info": "Quads/glutes. Balance + control."},
-        {"Exercise": "Romanian Deadlift", "Range": "~8", "Info": "Hamstrings/glutes. Hinge tight."},
-        {"Exercise": "Step-Ups or Hip Thrusts", "Range": "10–12", "Info": "Glute focus. Full lockout."},
-        {"Exercise": "Calf Raise (BW + DB)", "Range": "12–15", "Info": "Pause at stretch."},
-        {"Exercise": "Core: Plank / Hollow / Side Plank", "Range": "circuit", "Info": "Brace + breathe."},
-    ],
-
 }
 
 # ------------------ STATE ------------------
@@ -123,11 +122,11 @@ st.caption("Minimal scrolling • Accordion cards • Sticky Save")
 cols = st.columns(3)
 if cols[0].button("Upper A", use_container_width=True):
     st.session_state.picked = "Upper A"
-if cols[2].button("Upper B", use_container_width=True):
-    st.session_state.picked = "Upper B"
 if cols[1].button("Lower", use_container_width=True):
     st.session_state.picked = "Lower"
-    
+if cols[2].button("Upper B", use_container_width=True):
+    st.session_state.picked = "Upper B"
+
 picked = st.session_state.picked
 logs = load_logs()
 
