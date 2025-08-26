@@ -258,16 +258,38 @@ if picked:
 
     clr1, clr2 = st.columns(2)
     if clr1.button("🧹 Reset Current Inputs", use_container_width=True):
-        for ex in WORKOUTS[picked]:
-            name = ex["Exercise"]
-            default_sets = 4 if "Press" in name or "Deadlift" in name or "Squat" in name else 3
-            for s in range(1, int(default_sets)+1):
-                key = f"reps_{name}_{s}"
-                if key in st.session_state:
-                    st.session_state[key] = 0
-        st.toast("Inputs reset.")
+        try:
+            # Clear per-exercise state for the CURRENT workout
+            for ex in WORKOUTS[picked]:
+                name = ex["Exercise"]
+                # Drop any prefill for this exercise
+                if "prefill_map" in st.session_state and isinstance(st.session_state.prefill_map, dict):
+                    st.session_state.prefill_map.pop(name, None)
+                # Remove reps/sets/weight widget state keys safely
+                for s in range(1, 13):  # up to 12 sets safety cap
+                    rk = f"reps_{name}_{s}"
+                    if rk in st.session_state:
+                        del st.session_state[rk]
+                sk = f"sets_{name}"
+                if sk in st.session_state:
+                    del st.session_state[sk]
+                wk = f"w_{name}"
+                if wk in st.session_state:
+                    del st.session_state[wk]
+            st.toast("Inputs reset.")
+        except Exception as e:
+            st.error(f"Could not reset inputs: {e}")
+        st.experimental_rerun()
+
     if clr2.button("🔄 Start New Session", use_container_width=True):
-        st.session_state.session_start = None
+        try:
+            st.session_state.session_start = None
+            # Clear all prefills for a clean slate
+            st.session_state.prefill_map = {}
+            # Optionally keep current 'picked' workout; do not change it.
+            st.toast("New session started.")
+        except Exception as e:
+            st.error(f"Could not start new session: {e}")
         st.experimental_rerun()
 
     with st.expander("Recent History (this workout)"):
