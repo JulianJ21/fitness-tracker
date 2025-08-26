@@ -57,6 +57,7 @@ def last_summary(logs, ex_name):
     reps = last_df["reps"].astype(int).tolist()
     return {"weight": weight, "reps": reps, "n_sets": len(reps)}
 
+# ------------------ WORKOUTS ------------------
 WORKOUTS = {
     "Upper (Strength)": [
         {"Exercise": "Bench Press (BB/DB)", "Range": "6–8", "Info": "Main chest press. Double progression."},
@@ -91,9 +92,9 @@ if "picked" not in st.session_state:
 if "session_start" not in st.session_state:
     st.session_state.session_start = None
 if "sets_entered" not in st.session_state:
-    st.session_state.sets_entered = {}  # {exercise: [reps,...]}
+    st.session_state.sets_entered = {}
 if "weights" not in st.session_state:
-    st.session_state.weights = {}       # {exercise: weight}
+    st.session_state.weights = {}
 if "open_cards" not in st.session_state:
     st.session_state.open_cards = {}
 
@@ -110,6 +111,10 @@ st.markdown(
       .footer-title {font-weight:600; opacity:0.8}
       .pill {display:inline-block; padding:2px 8px; border-radius:999px; background:rgba(0,0,0,0.06); font-size:12px; margin-left:6px}
       .info-chip {display:inline-block; padding:2px 6px; border-radius:8px; background:rgba(0,0,0,0.05); font-size:12px; margin-left:6px}
+      /* pill radio styling */
+      div[role="radiogroup"] > label {border:1px solid rgba(0,0,0,0.12); padding:8px 14px; border-radius:999px; margin-right:8px; margin-bottom:8px; background:rgba(0,0,0,0.03);} 
+      div[role="radiogroup"] > label:hover {background: rgba(0,0,0,0.06)}
+      div[role="radiogroup"] input:checked + div {font-weight:600}
     </style>
     """,
     unsafe_allow_html=True,
@@ -119,44 +124,37 @@ st.markdown(
 st.title("Compact Workout Logger")
 st.caption("Minimal scrolling • Accordion cards • Sticky Save")
 
-# Create tabs for Home and Progression Guide
-tabs = st.tabs(["🏋️ Workouts", "📈 Progression Guide"])
+# Tabs: Workouts, Progression Guide, Warm-up
+work_tab, rules_tab, warm_tab = st.tabs(["🏋️ Workouts", "📈 Progression Guide", "🔥 Warm-up"])
 
-with tabs[0]:
-    st.markdown("""
-    <style>
-    .workout-btn button {
-        background-color: #f0f2f6;
-        border-radius: 12px;
-        padding: 12px;
-        font-size: 16px;
-        font-weight: 600;
-        margin: 6px 0;
-        width: 100%;
-    }
-    </style>
-    """, unsafe_allow_html=True)
-
-    cols = st.columns(3)
-    with cols[0]:
-        if st.button("Upper (Strength)", key="btn_strength"):
-            st.session_state.picked = "Upper (Strength)"
-    with cols[1]:
-        if st.button("Upper (Volume)", key="btn_volume"):
-            st.session_state.picked = "Upper (Volume)"
-    with cols[2]:
-        if st.button("Lower", key="btn_lower"):
-            st.session_state.picked = "Lower"
-
-with tabs[1]:
+with rules_tab:
     st.subheader("How to Progress in Weights")
-    st.markdown("""
-    - **Double progression rule:** Stay in the rep range. When you hit the top end on all sets, increase the weight next session.
-    - **Upper (Strength):** Add ~2.5 kg once you reach top reps in all sets.
-    - **Upper (Volume):** Push for more reps first; add weight when you comfortably exceed the top of the range.
-    - **Lower:** Focus on form. Add 2.5–5 kg cautiously when rep targets are hit with clean execution.
-    - **Isolation lifts:** Prefer adding reps before weight.
-    """)
+    st.markdown(
+        "- **Double progression rule:** Stay in the rep range. When you hit the top end on all sets, increase the weight next session.\n"
+        "- **Upper (Strength):** Add ~2.5 kg once you reach top reps in all sets.\n"
+        "- **Upper (Volume):** Push for more reps first; add weight when you comfortably exceed the top of the range.\n"
+        "- **Lower:** Focus on form. Add 2.5–5 kg cautiously when rep targets are hit with clean execution.\n"
+        "- **Isolation lifts:** Prefer adding reps before weight."
+    )
+
+with warm_tab:
+    st.subheader("Warm-up Routine")
+    st.markdown(
+        "Keep it lowkey and efficient:\n"
+        "- 3–5 min cardio bike\n"
+        "- Band pull-aparts ×15\n"
+        "- Shoulder dislocates ×10\n"
+        "- Bodyweight squats ×15\n"
+        "- Push-ups ×10–15\n"
+        "- Light warm-up sets of your first lift (≈40–60–80% of working weight)"
+    )
+
+with work_tab:
+    # Aesthetic pill radio selector
+    options = ["Upper (Strength)", "Upper (Volume)", "Lower"]
+    default_idx = options.index(st.session_state.picked) if st.session_state.picked in options else 0
+    choice = st.radio("Choose workout", options, index=default_idx, horizontal=True)
+    st.session_state.picked = choice
 
 picked = st.session_state.picked
 logs = load_logs()
@@ -178,7 +176,10 @@ if picked:
         cur_w = st.session_state.weights.get(name, last_w)
 
         # Header row
-        st.markdown(f"<div class='header-row'><div class='hdr-left'><span class='hdr-title'>{name}</span><span class='hdr-meta'>• {cur_w:g} kg • Last: {last_sets}×{last_avg_reps if last_avg_reps else '-'} </span></div></div>", unsafe_allow_html=True)
+        st.markdown(
+            f"<div class='header-row'><div class='hdr-left'><span class='hdr-title'>{name}</span><span class='hdr-meta'>• {cur_w:g} kg • Last: {last_sets}×{last_avg_reps if last_avg_reps else '-'} </span></div></div>",
+            unsafe_allow_html=True,
+        )
         info = ex.get("Info", "")
         if info:
             st.markdown(f"<span class='info-chip'>{info}</span>", unsafe_allow_html=True)
@@ -215,14 +216,12 @@ if picked:
                         colL.markdown(f"Set {i+1}")
                         rep_key = f"reps_{name}_{i+1}"
                         val = colR.number_input("reps", min_value=0, max_value=50, value=int(reps_list[i]), step=1, key=rep_key, label_visibility="collapsed")
-                        # write to state after submit
                     c1, c2, c3 = st.columns([1,1,2])
                     add_clicked = c1.form_submit_button("+ Add Set")
                     copy_clicked = c2.form_submit_button("Copy last set → all")
                     save_changes = c3.form_submit_button("Apply changes")
 
                 # After form submit: sync inputs back to sets_entered
-                # Read values from widget keys to ensure we capture typed numbers
                 updated = []
                 for i in range(len(reps_list)):
                     rep_key = f"reps_{name}_{i+1}"
@@ -262,7 +261,10 @@ if picked:
                         })
 
     # Sticky footer UI + real save button
-    st.markdown(f"<div class='footer-bar'><div class='footer-inner'><div class='footer-title'>Session: {picked} <span class='pill'>{datetime.now().strftime('%H:%M')}</span></div></div></div>", unsafe_allow_html=True)
+    st.markdown(
+        f"<div class='footer-bar'><div class='footer-inner'><div class='footer-title'>Session: {picked} <span class='pill'>{datetime.now().strftime('%H:%M')}</span></div></div></div>",
+        unsafe_allow_html=True,
+    )
     save_click = st.button("✅ Finish & Save", key="footer_save")
     if save_click:
         end_ts = datetime.now().isoformat(timespec="seconds")
@@ -270,10 +272,12 @@ if picked:
             for r in new_rows:
                 r["session_end"] = end_ts
             df_new = save_rows(new_rows)
-            st.success(f"Saved {len[df_new]} sets to {LOG_PATH.name}.")
-            by_ex = (df_new.groupby("exercise_name")
-                        .agg(sets=("set_idx","count"), top_weight=("weight_kg","max"), total_reps=("reps","sum"), volume=("volume_kg","sum"))
-                        .reset_index())
+            st.success(f"Saved {len(df_new)} sets to {LOG_PATH.name}.")
+            by_ex = (
+                df_new.groupby("exercise_name")
+                .agg(sets=("set_idx","count"), top_weight=("weight_kg","max"), total_reps=("reps","sum"), volume=("volume_kg","sum"))
+                .reset_index()
+            )
             st.markdown("#### Session Summary")
             st.dataframe(by_ex, hide_index=True, use_container_width=True)
             st.session_state.session_start = None
