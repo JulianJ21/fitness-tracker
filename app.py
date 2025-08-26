@@ -153,7 +153,7 @@ if picked:
             st.markdown(f"<span class='info-chip'>{info}</span>", unsafe_allow_html=True)
 
         is_open = st.session_state.open_cards.get(name, False)
-        btn_label = "✏️ Log sets" if not is_open else "⬆️ Hide log"
+        btn_label = "⬇️ Log sets" if not is_open else "⬆️ Hide log"
         if st.button(btn_label, key=f"toggle_{name}"):
             st.session_state.open_cards[name] = not is_open
             st.rerun()
