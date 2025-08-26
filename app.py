@@ -190,7 +190,7 @@ if picked:
                         st.warning("No reps in the last set to copy.")
                     else:
                         st.session_state.prefill_map[name] = [last_val] * int(n_sets)
-                        st.experimental_rerun()
+                        st.rerun()
                 except Exception as e:
                     st.error(f"Could not copy: {e}")
 
@@ -199,7 +199,7 @@ if picked:
                     if prev_reps:
                         vals = [int(prev_reps[i]) if i < len(prev_reps) else 0 for i in range(int(n_sets))]
                         st.session_state.prefill_map[name] = vals
-                        st.experimental_rerun()
+                        st.rerun()
                     else:
                         st.info("No previous reps found for this exercise.")
                 except Exception as e:
@@ -279,7 +279,7 @@ if picked:
             st.toast("Inputs reset.")
         except Exception as e:
             st.error(f"Could not reset inputs: {e}")
-        st.experimental_rerun()
+        st.rerun()
 
     if clr2.button("🔄 Start New Session", use_container_width=True):
         try:
@@ -290,7 +290,7 @@ if picked:
             st.toast("New session started.")
         except Exception as e:
             st.error(f"Could not start new session: {e}")
-        st.experimental_rerun()
+        st.rerun()
 
     with st.expander("Recent History (this workout)"):
         hist = logs[logs["workout_name"] == picked].sort_values("session_end").tail(50)
