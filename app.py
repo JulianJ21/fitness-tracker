@@ -123,11 +123,11 @@ st.caption("Minimal scrolling • Accordion cards • Sticky Save")
 cols = st.columns(3)
 if cols[0].button("Upper A", use_container_width=True):
     st.session_state.picked = "Upper A"
-if cols[1].button("Lower", use_container_width=True):
-    st.session_state.picked = "Lower"
 if cols[2].button("Upper B", use_container_width=True):
     st.session_state.picked = "Upper B"
-
+if cols[1].button("Lower", use_container_width=True):
+    st.session_state.picked = "Lower"
+    
 picked = st.session_state.picked
 logs = load_logs()
 
