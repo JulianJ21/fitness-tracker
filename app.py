@@ -105,6 +105,8 @@ if "session_start" not in st.session_state:
     st.session_state.session_start = None
 if "picked" not in st.session_state:
     st.session_state.picked = None
+if "prefill_map" not in st.session_state:
+    st.session_state.prefill_map = {}
 
 rotation = ["Upper A", "Lower", "Upper B"]
 if st.session_state.last_workout in rotation:
@@ -170,17 +172,38 @@ if picked:
             n_sets = st.number_input("Sets", min_value=1, max_value=8, value=int(carried_sets), step=1, key=f"sets_{name}")
 
             reps_inputs = []
+            # Decide defaults: prefer prefill_map[name] if present, else last session reps
+            prefill_list = st.session_state.prefill_map.get(name, None)
             for s in range(1, int(n_sets)+1):
-                default_rep = prev_reps[s-1] if s-1 < len(prev_reps) else 0
+                if prefill_list is not None and len(prefill_list) > 0:
+                    default_rep = int(prefill_list[s-1]) if s-1 < len(prefill_list) else 0
+                else:
+                    default_rep = int(prev_reps[s-1]) if s-1 < len(prev_reps) else 0
                 reps = st.number_input(f"Reps – Set {s}", min_value=0, max_value=50, value=default_rep, step=1, key=f"reps_{name}_{s}")
                 reps_inputs.append(reps)
 
-            if st.button("Copy Last Set", key=f"copy_{name}") and reps_inputs:
-                last_val = reps_inputs[-1]
-                for s in range(1, int(n_sets)+1):
-                    key = f"reps_{name}_{s}"
-                    st.session_state[key] = last_val
-                st.toast(f"Copied {last_val} reps to all sets for {name}")
+            c_copy, c_prefill = st.columns(2)
+            if c_copy.button("Copy last set → all", key=f"copy_{name}"):
+                try:
+                    last_val = int(reps_inputs[-1]) if reps_inputs and reps_inputs[-1] else 0
+                    if last_val <= 0:
+                        st.warning("No reps in the last set to copy.")
+                    else:
+                        st.session_state.prefill_map[name] = [last_val] * int(n_sets)
+                        st.experimental_rerun()
+                except Exception as e:
+                    st.error(f"Could not copy: {e}")
+
+            if c_prefill.button("Prefill last session reps", key=f"prefill_{name}"):
+                try:
+                    if prev_reps:
+                        vals = [int(prev_reps[i]) if i < len(prev_reps) else 0 for i in range(int(n_sets))]
+                        st.session_state.prefill_map[name] = vals
+                        st.experimental_rerun()
+                    else:
+                        st.info("No previous reps found for this exercise.")
+                except Exception as e:
+                    st.error(f"Could not prefill: {e}")
 
             for idx, reps in enumerate(reps_inputs, start=1):
                 if reps > 0:
